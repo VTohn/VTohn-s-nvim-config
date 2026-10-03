@@ -3,12 +3,12 @@
 -- 用到的能力：
 --   <leader>cf   手动格式化当前文件
 --   <leader>uf   开关全局「保存时自动格式化」（默认开着，走 verible 格式化）
---   悬停 / 跳转定义 / 引用 / 重命名 / 符号大纲(<leader>ss) / 诊断 = verible-verilog-ls
+--   补全 = slang-server（verible 自己不带补全）
+--   悬停 / 跳转定义 / 引用 / 重命名 / 符号大纲(<leader>cs) / 风格 lint = verible-verilog-ls
 --   语法高亮 / 折叠 = treesitter 的 systemverilog parser
 --
--- 注意：verible-verilog-ls 不提供补全（completionProvider 为空，实测直接请求也没结果），
---       所以现在只有 blink 自带的 buffer / path 词补全。想要真正的 RTL 补全，
---       得再加一个语言服务器（svls 或 slang-server），说一声就加。
+-- 两个 LSP 是分工的：verible 管格式化 + 风格规则，slang-server 管语义（补全等）。
+-- 诊断会有两套来源，这是故意的；嫌吵再回来关掉其中一套。
 --
 -- 依赖（装一次就行）：
 --   :MasonInstall verible      → verible-verilog-ls(LSP) + verible-verilog-format(格式化)
@@ -39,8 +39,8 @@ return {
     end,
   },
 
-  -- LSP：Verible（补全、跳转、诊断、文档符号）
-  -- 写进 servers 之后，LazyVim 会顺带让 Mason 自动装上 verible
+  -- LSP：verible（格式化 / 风格 lint / 跳转 / 符号大纲）+ slang-server（补全 / 语义）
+  -- 写进 servers 之后，LazyVim 会顺带让 Mason 把这两个都装上
   {
     "neovim/nvim-lspconfig",
     opts = {
@@ -54,6 +54,11 @@ return {
             client.server_capabilities.diagnosticProvider = nil
           end,
         },
+        -- 补全靠它（verible 不带补全能力）
+        -- 注意：它得能认出工程根（目录里有 .git 或 .slang/）才会索引其它文件；
+        -- 认不出来的话只有当前文件能用，跨文件的模块名补全就没有了。
+        -- 多文件工程可以在项目根放 .slang/server.json 配 include 路径 / 宏定义。
+        slang_server = {},
       },
     },
   },

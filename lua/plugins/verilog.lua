@@ -3,8 +3,12 @@
 -- 用到的能力：
 --   <leader>cf   手动格式化当前文件
 --   <leader>uf   开关全局「保存时自动格式化」（默认开着，走 verible 格式化）
---   补全 / 跳转 / 诊断 / 符号大纲(<leader>ss) = verible-verilog-ls
+--   悬停 / 跳转定义 / 引用 / 重命名 / 符号大纲(<leader>ss) / 诊断 = verible-verilog-ls
 --   语法高亮 / 折叠 = treesitter 的 systemverilog parser
+--
+-- 注意：verible-verilog-ls 不提供补全（completionProvider 为空，实测直接请求也没结果），
+--       所以现在只有 blink 自带的 buffer / path 词补全。想要真正的 RTL 补全，
+--       得再加一个语言服务器（svls 或 slang-server），说一声就加。
 --
 -- 依赖（装一次就行）：
 --   :MasonInstall verible      → verible-verilog-ls(LSP) + verible-verilog-format(格式化)

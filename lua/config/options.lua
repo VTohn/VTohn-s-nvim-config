@@ -17,3 +17,11 @@ vim.opt.softtabstop = 4 -- 编辑时按 Tab / Backspace 的宽度
 --     vim.opt_local.softtabstop = 8
 --   end,
 -- })
+
+-- Verilog / SystemVerilog 的 filetype 兜底
+-- nvim 0.13 对 .v 是按内容嗅探的：正常 RTL 会认成 verilog，
+-- 但注释居多 / 近乎空白的 .v 会 fallback 成 v（V 语言），所以这里强制成 verilog。
+-- 代价：以后写 V 语言（vlang）的 .v 文件也会被当成 Verilog。
+vim.g.filetype_v = "verilog"
+-- .vh 在 nvim 里没有默认映射（只有 .sv / .svh → systemverilog），补上
+vim.filetype.add({ extension = { vh = "verilog" } })

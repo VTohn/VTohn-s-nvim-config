@@ -11,8 +11,8 @@
 -- 诊断会有两套来源，这是故意的；嫌吵再回来关掉其中一套。
 --
 -- 依赖（装一次就行）：
---   :MasonInstall verible      → verible-verilog-ls(LSP) + verible-verilog-format(格式化)
---   :TSInstall systemverilog   → 高亮 / 折叠
+--   :MasonInstall verible slang-server   → LSP / 格式化 / 补全
+--   :TSInstall systemverilog             → 高亮 / 折叠
 --
 -- 说明：nvim-treesitter 的 main 分支没有 verilog parser，只有 systemverilog，
 --       所以下面把 verilog 这个 filetype 注册到 systemverilog parser 上，

@@ -29,6 +29,28 @@
 -- 没配仿真（iverilog / verilator / 波形）：需要的话再单独加。
 
 return {
+  -- 反引号：Verilog 里 ` 是宏前缀（`define / `RstDisable），不是引号。
+  -- LazyVim 默认带 mini.pairs，它的默认表里有
+  --     ['`'] = { action = 'closeopen', pair = '``', ... }
+  -- 于是打一个 ` 会再补一个闭合的 `（两下才有一个正常反引号，正是之前的毛病）。
+  -- 这里只对 verilog / systemverilog 解掉这个 buffer 级映射，
+  -- ` 就原样插入；mini.pairs 的括号 / 引号成对行为在别的语言里不受影响。
+  {
+    "nvim-mini/mini.pairs",
+    optional = true,
+    init = function()
+      local group = vim.api.nvim_create_augroup("VerilogNoBacktickPair", { clear = true })
+      vim.api.nvim_create_autocmd("FileType", {
+        group = group,
+        pattern = { "verilog", "systemverilog" },
+        desc = "Verilog 里 ` 不做成对补全",
+        callback = function(args)
+          vim.keymap.set("i", "`", "`", { buffer = args.buf, desc = "原样插入反引号" })
+        end,
+      })
+    end,
+  },
+
   -- treesitter：装 systemverilog parser，并把 verilog filetype 指过去
   {
     "nvim-treesitter/nvim-treesitter",
@@ -55,10 +77,53 @@ return {
           end,
         },
         -- 补全靠它（verible 不带补全能力）
-        -- 注意：它得能认出工程根（目录里有 .git 或 .slang/）才会索引其它文件；
-        -- 认不出来的话只有当前文件能用，跨文件的模块名补全就没有了。
-        -- 多文件工程可以在项目根放 .slang/server.json 配 include 路径 / 宏定义。
-        slang_server = {},
+        -- 注意：lspconfig 默认只认 .git / .slang/ 当工程根标记；
+        -- 像 /data/Programme/{VerilogPractice,FPGAproject} 这种没跑过 git 的目录，
+        -- root=nil 时 slang-server 基本等于没启动，补全里只剩几个内建类型、
+        -- 没有 module / endmodule / case，也没有跨文件的模块名。
+        -- 下面先按 .git / .slang/ 找（同 lspconfig 默认），找不到时从文件所在
+        -- 目录往上爬，停在「直接包含 .v/.sv 的上一层目录」，这样多文件工程
+        -- 不用建任何标记也能索引到同一工程里的其它文件。
+        -- 想更精确（include 路径 / 宏定义），仍可在工程根放 .slang/server.json。
+        slang_server = {
+          root_dir = function(bufnr, on_dir)
+            local file = vim.api.nvim_buf_get_name(bufnr)
+            if file == "" then
+              return
+            end
+            local dir = vim.fs.dirname(file)
+
+            -- 该目录「直接」含 .v/.sv/.vh/.svh（不递归，递归会一路爬到 /）
+            local function has_verilog(d)
+              for name, t in vim.fs.dir(d) do
+                if t == "file" and name:match("%.s?vh?$") then
+                  return true
+                end
+              end
+              return false
+            end
+
+            local cur = dir
+            while true do
+              -- 有标记就以标记为准，优先于下面的兜底
+              for _, marker in ipairs({ ".git", ".slang" }) do
+                if vim.uv.fs_stat(cur .. "/" .. marker) then
+                  return on_dir(cur)
+                end
+              end
+              local parent = vim.fs.dirname(cur)
+              if parent == cur or parent == nil then
+                break
+              end
+              -- 爬到「上一层里有同级 verilog 文件」为止，找不到就用文件自身目录
+              if has_verilog(parent) then
+                return on_dir(parent)
+              end
+              cur = parent
+            end
+            on_dir(dir)
+          end,
+        },
       },
     },
   },

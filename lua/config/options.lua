@@ -25,3 +25,7 @@ vim.opt.softtabstop = 4 -- 编辑时按 Tab / Backspace 的宽度
 vim.g.filetype_v = "verilog"
 -- .vh 在 nvim 里没有默认映射（只有 .sv / .svh → systemverilog），补上
 vim.filetype.add({ extension = { vh = "verilog" } })
+
+-- 剪贴板不在这里设：LazyVim 会把 clipboard 先存起来、置空，等 VeryLazy 再恢复
+-- （为了延迟加载 xsel/pbcopy），写在 options.lua 里会被这套流程夹在中间，
+-- 结果不稳定。真正的设置放在 lua/config/autocmds.lua 的 VeryLazy 之后。
